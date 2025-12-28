@@ -10,8 +10,8 @@ type Args struct {
 	Count    uint
 }
 
-func (self Args) String() string {
-	nodeName, vecName := self.NodeName, self.VecName
+func (it Args) String() string {
+	nodeName, vecName := it.NodeName, it.VecName
 	if nodeName == "" {
 		nodeName = "_"
 	}
@@ -22,5 +22,5 @@ func (self Args) String() string {
 
 	return fmt.Sprintf(
 		"%s/%s %v %v count %d",
-		nodeName, vecName, self.DefKeys, self.AddItem, self.Count)
+		nodeName, vecName, it.DefKeys, it.AddItem, it.Count)
 }
