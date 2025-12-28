@@ -50,7 +50,7 @@ func getInfoMsg(id, addr string) string {
 	}
 
 	goVer := buildInfo.GoVersion
-	return fmt.Sprintf("wwwkeep %s@%s %s\n", id, addr, goVer)
+	return fmt.Sprintf("wwwkeep\n%s@%s\n%s\n", id, addr, goVer)
 }
 
 func (err OpErr) write(w http.ResponseWriter, enc *gob.Encoder) {

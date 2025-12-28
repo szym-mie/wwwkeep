@@ -1,14 +1,71 @@
 package wwwkeep
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/gob"
 	"fmt"
+	"log"
 	"net/http"
+	"strings"
 )
 
 type Caller struct {
-	addr string
+	Addr       string
+	RemoteId   string
+	RemoteMeta map[string]string
+}
+
+func (it *Caller) fetchInfo() error {
+	// TODO: add version checking
+	url := fmt.Sprintf("http://%s/", it.Addr)
+
+	resp, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+
+	i := 0
+	sc := bufio.NewScanner(resp.Body)
+	for ; sc.Scan(); i++ {
+		line := sc.Text()
+		switch i {
+		case 0:
+			if line != "wwwkeep" {
+				return fmt.Errorf("caller_fetch_info: bad signature %s", line)
+			}
+		case 1:
+			id, addr, found := strings.Cut(line, "@")
+			if !found {
+				return fmt.Errorf("caller_fetch_info: bad id field %s", line)
+			}
+
+			if it.Addr != addr {
+				log.Printf("caller_fetch_info: addr mismatch %s\n", addr)
+			}
+
+			it.RemoteId = id
+		case 2:
+			// goX.Y.Z version - don't bother
+		default:
+			key, field, found := strings.Cut(line, "=")
+			if !found {
+				return fmt.Errorf("caller_fetch_info: bad meta %s", line)
+			}
+
+			it.RemoteMeta[key] = field
+		}
+	}
+
+	if i < 3 {
+		return fmt.Errorf("caller_fetch_info: info msg is too short")
+	}
+
+	return nil
+}
+
+func (it *Caller) rpcUrl() string {
+	return fmt.Sprintf("http://%s/rpc", it.Addr)
 }
 
 func getUintReply(reply *OpReply, err error) (*uint, error) {
@@ -71,7 +128,7 @@ func (it *OpCall) call(cl *Caller) (*OpReply, error) {
 		return nil, fmt.Errorf("op_call: %w - encode fail\n", err)
 	}
 
-	resp, err := http.Post(cl.addr+"/rpc", "application/octet-stream", buf)
+	resp, err := http.Post(cl.rpcUrl(), "application/octet-stream", buf)
 	if err != nil {
 		return nil, err
 	}
@@ -96,6 +153,12 @@ func (it *OpCall) call(cl *Caller) (*OpReply, error) {
 }
 
 func Dial(addr string) (*Caller, error) {
-	// TODO use persistent connection - declare gob enc/dec here etc.
-	return &Caller{addr}, nil
+	it := new(Caller)
+	it.Addr = addr
+	it.RemoteMeta = make(map[string]string)
+	if err := it.fetchInfo(); err != nil {
+		return nil, fmt.Errorf("caller_dial: %w - info fail", err)
+	}
+
+	return it, nil
 }

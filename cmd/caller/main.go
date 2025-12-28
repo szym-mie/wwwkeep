@@ -7,10 +7,15 @@ import (
 )
 
 func main() {
-	cl, _ := wwwkeep.Dial("http://127.0.0.1:4400")
-	log.Println("dial: ok")
+	cl, err := wwwkeep.Dial("127.0.0.1:4400")
+	if err != nil {
+		panic(err)
+	}
 
-	var err error
+	log.Println("dial: ok")
+	log.Println("dial_remote_id:", cl.RemoteId)
+	log.Println("dial_remote_meta:", cl.RemoteMeta)
+
 	var a, b *wwwkeep.Vals
 	var aCount, bCount *uint
 	var dirs *wwwkeep.Dirs
