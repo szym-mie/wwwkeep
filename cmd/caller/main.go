@@ -3,17 +3,17 @@ package main
 import (
 	"log"
 
-	"smbsd.local/wwwrpc"
+	"smbsd.local/wwwkeep"
 )
 
 func main() {
-	cl, _ := wwwrpc.Dial("http://127.0.0.1:4400")
+	cl, _ := wwwkeep.Dial("http://127.0.0.1:4400")
 	log.Println("dial: ok")
 
 	var err error
-	var a, b *wwwrpc.Vals
+	var a, b *wwwkeep.Vals
 	var aCount, bCount *uint
-	var dirs *wwwrpc.Dirs
+	var dirs *wwwkeep.Dirs
 
 	log.Println("def: node/a, node/b, node/c")
 	_, err = cl.Def("node", []string{"a", "b", "c"}, 0)
