@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"runtime/debug"
 	"time"
 )
 
@@ -40,26 +41,45 @@ func (it Keep) Handle(opCtxIn <-chan *OpCtx) {
 	}
 }
 
+func getInfoMsg(id, addr string) string {
+	buildInfo, ok := debug.ReadBuildInfo()
+	if !ok {
+		errMsg := "index: read build info fail"
+		log.Println(errMsg)
+		return errMsg
+	}
+
+	goVer := buildInfo.GoVersion
+	return fmt.Sprintf("wwwkeep %s@%s %s\n", id, addr, goVer)
+}
+
 func (err OpErr) write(w http.ResponseWriter, enc *gob.Encoder) {
-	log.Printf("op_err: %d -> %s\n", err.Code, err.Err)
+	log.Println(fmt.Errorf("op_err: %d -> %w", err.Code, err.Err))
 	w.WriteHeader(err.Code)
 	if err := enc.Encode(err.Err.Error()); err != nil {
-		log.Panicf("op_err_write: %s\n", err)
+		log.Panicln(fmt.Errorf("op_err_write: %w", err))
 	}
 }
 
-func (it Keep) Serve(addr string) error {
+func (it Keep) Serve(id, addr string) error {
+	infoMsgBytes := []byte(getInfoMsg(id, addr))
+
 	opCtxIn := make(chan *OpCtx)
 	go it.Handle(opCtxIn)
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/rpc", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
+		if _, err := w.Write(infoMsgBytes); err != nil {
+			log.Println(fmt.Errorf("index: %w - write fail", err))
+		}
+	})
+	mux.HandleFunc("POST /rpc", func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		enc, dec := gob.NewEncoder(w), gob.NewDecoder(r.Body)
 		if r.Method != "POST" {
 			OpErr{
 				http.StatusMethodNotAllowed,
-				fmt.Errorf("serve: method %s not allowed\n", r.Method)}.write(w, enc)
+				fmt.Errorf("serve: method %s not allowed", r.Method)}.write(w, enc)
 			return
 		}
 
@@ -67,12 +87,12 @@ func (it Keep) Serve(addr string) error {
 		if err := dec.Decode(opCall); err != nil {
 			OpErr{
 				http.StatusBadRequest,
-				fmt.Errorf("serve: %s - decode fail\n", err)}.write(w, enc)
+				fmt.Errorf("serve: %w - decode fail", err)}.write(w, enc)
 			return
 		}
 
 		if err := ctx.Err(); err != nil {
-			log.Printf("serve: %s - cancel\n", ctx.Err())
+			log.Println(fmt.Errorf("serve: %w - cancel", ctx.Err()))
 			return
 		}
 
@@ -85,7 +105,7 @@ func (it Keep) Serve(addr string) error {
 			if err != nil {
 				OpErr{
 					http.StatusInternalServerError,
-					fmt.Errorf("serve: %s - call fail\n", err)}.write(w, enc)
+					fmt.Errorf("serve: %w - call fail\n", err)}.write(w, enc)
 				return
 			}
 
@@ -93,7 +113,7 @@ func (it Keep) Serve(addr string) error {
 			if err != nil {
 				OpErr{
 					http.StatusInternalServerError,
-					fmt.Errorf("serve: %s - no reply\n", err)}.write(w, enc)
+					fmt.Errorf("serve: %w - no reply\n", err)}.write(w, enc)
 				return
 			}
 
@@ -105,7 +125,7 @@ func (it Keep) Serve(addr string) error {
 				fmt.Errorf("serve: call timeout\n")}.write(w, enc)
 		case <-ctx.Done():
 			timer.Stop()
-			log.Printf("serve: %s - cancel\n", ctx.Err())
+			log.Println(fmt.Errorf("serve: %w - cancel\n", ctx.Err()))
 		}
 	})
 

@@ -9,5 +9,5 @@ import (
 func main() {
 	log.Println("start root handler")
 	keep := make(wwwkeep.Keep)
-	keep.Serve("127.0.0.1:4400")
+	keep.Serve("root", "127.0.0.1:4400")
 }

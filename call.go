@@ -68,7 +68,7 @@ func (it *Caller) Dir(nodeName string) (*Dirs, error) {
 func (it *OpCall) call(cl *Caller) (*OpReply, error) {
 	buf := new(bytes.Buffer)
 	if err := gob.NewEncoder(buf).Encode(*it); err != nil {
-		return nil, fmt.Errorf("op_call: %s - encode fail\n", err)
+		return nil, fmt.Errorf("op_call: %w - encode fail\n", err)
 	}
 
 	resp, err := http.Post(cl.addr+"/rpc", "application/octet-stream", buf)
@@ -82,14 +82,14 @@ func (it *OpCall) call(cl *Caller) (*OpReply, error) {
 	if status != 200 {
 		remoteErrMsg := new(string)
 		if err := dec.Decode(remoteErrMsg); err != nil {
-			return nil, fmt.Errorf("op_call: %s - decode fail\n", err)
+			return nil, fmt.Errorf("op_call: %w - decode fail\n", err)
 		}
 		return nil, fmt.Errorf("op_call: %d -> %s\n", status, *remoteErrMsg)
 	}
 
 	reply := new(OpReply)
 	if err := dec.Decode(reply); err != nil {
-		return nil, fmt.Errorf("op_call: %s - decode fail\n", err)
+		return nil, fmt.Errorf("op_call: %w - decode fail\n", err)
 	}
 
 	return reply, nil
