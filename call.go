@@ -35,7 +35,7 @@ func (it *Caller) fetchInfo() error {
 				return fmt.Errorf("caller_fetch_info: bad signature %s", line)
 			}
 		case 1:
-			id, addr, found := strings.Cut(line, "@")
+			id, addr, found := strings.Cut(line, " ")
 			if !found {
 				return fmt.Errorf("caller_fetch_info: bad id field %s", line)
 			}

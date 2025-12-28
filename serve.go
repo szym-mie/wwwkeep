@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"runtime/debug"
+	"strings"
 	"time"
 )
 
@@ -50,7 +51,7 @@ func getInfoMsg(id, addr string) string {
 	}
 
 	goVer := buildInfo.GoVersion
-	return fmt.Sprintf("wwwkeep\n%s@%s\n%s\n", id, addr, goVer)
+	return fmt.Sprintf("wwwkeep\n%s %s\n%s\n", id, addr, goVer)
 }
 
 func (err OpErr) write(w http.ResponseWriter, enc *gob.Encoder) {
@@ -62,6 +63,10 @@ func (err OpErr) write(w http.ResponseWriter, enc *gob.Encoder) {
 }
 
 func (it Keep) Serve(id, addr string) error {
+	if strings.Contains(id, " ") {
+		return fmt.Errorf("serve: id contains whitespace")
+	}
+
 	infoMsgBytes := []byte(getInfoMsg(id, addr))
 
 	opCtxIn := make(chan *OpCtx)
