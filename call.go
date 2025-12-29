@@ -142,7 +142,7 @@ func (it *Caller) Dir(nodeName string) (*Dirs, error) {
 }
 
 func (it *Caller) Opt(nodeName, vecName string) (*uint, error) {
-	args := Args{nodeName, "", nil, nil, 0}
+	args := Args{nodeName, vecName, nil, nil, 0}
 	opCall := &OpCall{OptOp, args}
 	reply, err := opCall.call(it)
 	if err != nil {

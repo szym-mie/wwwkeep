@@ -144,10 +144,13 @@ func (it Keep) opt(args *Args) (uint, error) {
 		return 0, err
 	}
 
-	count := uint(0)
-	for _, v := range node {
-		count += v.Shrink()
+	k := args.VecName
+	vs := node[k]
+	if vs == nil {
+		return 0, fmt.Errorf(
+			"keep_opt: no %s/%s vec in %p",
+			args.NodeName, k, it)
 	}
 
-	return count, nil
+	return uint(vs.Shrink()), nil
 }
