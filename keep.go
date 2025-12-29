@@ -47,8 +47,7 @@ func (it Keep) def(args *Args) (uint, error) {
 }
 
 func (it Keep) add(args *Args) (uint, error) {
-	nn := args.NodeName
-	node, err := it.getNode(nn)
+	node, err := it.getNode(args.NodeName)
 	if err != nil {
 		return 0, err
 	}
@@ -58,7 +57,7 @@ func (it Keep) add(args *Args) (uint, error) {
 		if node[k] == nil {
 			return 0, fmt.Errorf(
 				"keep_add: no %s/%s vec in %p",
-				nn, k, it)
+				args.NodeName, k, it)
 		}
 		node[k].Append(v)
 		count++
@@ -68,8 +67,7 @@ func (it Keep) add(args *Args) (uint, error) {
 }
 
 func (it Keep) get(args *Args) (Vals, error) {
-	nn := args.NodeName
-	node, err := it.getNode(nn)
+	node, err := it.getNode(args.NodeName)
 	if err != nil {
 		return nil, err
 	}
@@ -79,15 +77,14 @@ func (it Keep) get(args *Args) (Vals, error) {
 	if vs == nil {
 		return nil, fmt.Errorf(
 			"keep_get: no %s/%s vec in %p",
-			nn, k, it)
+			args.NodeName, k, it)
 	}
 
 	return vs.Slice(), nil
 }
 
 func (it Keep) pop(args *Args) (uint, error) {
-	nn := args.NodeName
-	node, err := it.getNode(nn)
+	node, err := it.getNode(args.NodeName)
 	if err != nil {
 		return 0, err
 	}
@@ -97,7 +94,7 @@ func (it Keep) pop(args *Args) (uint, error) {
 	if vs == nil {
 		return 0, fmt.Errorf(
 			"keep_poplen: no %s/%s vec in %p",
-			nn, k, it)
+			args.NodeName, k, it)
 	}
 
 	for range args.Count {
@@ -139,4 +136,18 @@ func (it Keep) dir(args *Args) (Dirs, error) {
 	}
 
 	return Dirs{en, et, sizes}, nil
+}
+
+func (it Keep) opt(args *Args) (uint, error) {
+	node, err := it.getNode(args.NodeName)
+	if err != nil {
+		return 0, err
+	}
+
+	count := uint(0)
+	for _, v := range node {
+		count += v.Shrink()
+	}
+
+	return count, nil
 }

@@ -10,6 +10,8 @@ import (
 	"strings"
 )
 
+const CallerVer = "1"
+
 type Caller struct {
 	Addr       string
 	RemoteId   string
@@ -31,17 +33,34 @@ func (it *Caller) fetchInfo() error {
 		line := sc.Text()
 		switch i {
 		case 0:
-			if line != "wwwkeep" {
+			sig, ver, found := strings.Cut(line, "&")
+			if !found {
+				return fmt.Errorf(
+					"caller_fetch_info: missing & in '%s'",
+					line)
+			}
+
+			if sig != "wwwkeep" {
 				return fmt.Errorf("caller_fetch_info: bad signature %s", line)
+			}
+
+			if ver != CallerVer {
+				return fmt.Errorf(
+					"caller_fetch_info: ver mismatch %s != %s (srv)",
+					CallerVer, ver)
 			}
 		case 1:
 			id, addr, found := strings.Cut(line, " ")
 			if !found {
-				return fmt.Errorf("caller_fetch_info: bad id field %s", line)
+				return fmt.Errorf(
+					"caller_fetch_info: missing space in '%s'",
+					line)
 			}
 
 			if it.Addr != addr {
-				log.Printf("caller_fetch_info: addr mismatch %s\n", addr)
+				log.Printf(
+					"caller_fetch_info: addr mismatch %s != %s (srv)\n",
+					it.Addr, addr)
 			}
 
 			it.RemoteId = id
@@ -88,7 +107,7 @@ func (it *Caller) Add(nodeName string, tuple map[string]string) (*uint, error) {
 	return getUintReply(opCall.call(it))
 }
 
-func (it *Caller) Get(nodeName string, vecName string) (*Vals, error) {
+func (it *Caller) Get(nodeName, vecName string) (*Vals, error) {
 	args := Args{nodeName, vecName, nil, nil, 0}
 	opCall := &OpCall{GetOp, args}
 	reply, err := opCall.call(it)
@@ -99,13 +118,13 @@ func (it *Caller) Get(nodeName string, vecName string) (*Vals, error) {
 	return reply.Vals, nil
 }
 
-func (it *Caller) Pop(nodeName string, vecName string, count uint) (*uint, error) {
+func (it *Caller) Pop(nodeName, vecName string, count uint) (*uint, error) {
 	args := Args{nodeName, vecName, nil, nil, count}
 	opCall := &OpCall{PopOp, args}
 	return getUintReply(opCall.call(it))
 }
 
-func (it *Caller) Len(nodeName string, vecName string) (*uint, error) {
+func (it *Caller) Len(nodeName, vecName string) (*uint, error) {
 	args := Args{nodeName, vecName, nil, nil, 0}
 	opCall := &OpCall{LenOp, args}
 	return getUintReply(opCall.call(it))
@@ -120,6 +139,17 @@ func (it *Caller) Dir(nodeName string) (*Dirs, error) {
 	}
 
 	return reply.Dirs, nil
+}
+
+func (it *Caller) Opt(nodeName, vecName string) (*uint, error) {
+	args := Args{nodeName, "", nil, nil, 0}
+	opCall := &OpCall{OptOp, args}
+	reply, err := opCall.call(it)
+	if err != nil {
+		return nil, err
+	}
+
+	return reply.Uint, nil
 }
 
 func (it *OpCall) call(cl *Caller) (*OpReply, error) {

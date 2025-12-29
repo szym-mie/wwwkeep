@@ -59,9 +59,11 @@ func (it *List) Pop() *string {
 	return val
 }
 
-func (it *List) Shrink() {
+func (it *List) Shrink() uint {
+	count := it.Cap - it.Len
 	it.free = nil
 	it.Cap = it.Len
+	return count
 }
 
 func (it *List) Slice() []string {

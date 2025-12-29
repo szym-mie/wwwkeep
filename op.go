@@ -12,6 +12,7 @@ const (
 	PopOp = "pop"
 	LenOp = "len"
 	DirOp = "dir"
+	OptOp = "opt"
 )
 
 type OpId string

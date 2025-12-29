@@ -10,6 +10,8 @@ import (
 	"time"
 )
 
+const ServerVer = "1"
+
 type OpErr struct {
 	Code int
 	Err  error
@@ -34,6 +36,8 @@ func (it Keep) Handle(opCtxIn <-chan *OpCtx) {
 			op.errorOut <- op.replyWithUint(it.len(&op.Args))
 		case DirOp:
 			op.errorOut <- op.replyWithDirs(it.dir(&op.Args))
+		case OptOp:
+			op.errorOut <- op.replyWithUint(it.opt(&op.Args))
 		default:
 			op.errorOut <- fmt.Errorf(
 				"keep_handle: bad op id (%s)",
@@ -51,7 +55,7 @@ func getInfoMsg(id, addr string) string {
 	}
 
 	goVer := buildInfo.GoVersion
-	return fmt.Sprintf("wwwkeep\n%s %s\n%s\n", id, addr, goVer)
+	return fmt.Sprintf("wwwkeep&%s\n%s %s\n%s\n", ServerVer, id, addr, goVer)
 }
 
 func (err OpErr) write(w http.ResponseWriter, enc *gob.Encoder) {
