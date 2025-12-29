@@ -60,6 +60,12 @@ func main() {
 
 	log.Printf("b count: %d\n", *bCount)
 
+	log.Println("add: node/_: b: 7")
+	_, err = cl.Add("node", map[string]string{"b": "7"})
+	if err != nil {
+		panic(err)
+	}
+
 	log.Println("get: node/b")
 	b, err = cl.Get("node", "b")
 	if err != nil {
@@ -83,8 +89,8 @@ func main() {
 	}
 
 	log.Printf("dir: %v at %v:\n", dirs.EntType, dirs.EntName)
-	for k, v := range dirs.Counts {
-		log.Printf("| %8s - %d vecs\n", k, v)
+	for k, v := range dirs.Sizes {
+		log.Printf("| %8s - %d vecs\n", k, v.Len)
 	}
 
 	log.Println("dir: node")
@@ -94,7 +100,7 @@ func main() {
 	}
 
 	log.Printf("dir: %v at %v:\n", dirs.EntType, dirs.EntName)
-	for k, v := range dirs.Counts {
-		log.Printf("| %8s - %d items\n", k, v)
+	for k, v := range dirs.Sizes {
+		log.Printf("| %8s - len %d cap %d\n", k, v.Len, v.Cap)
 	}
 }

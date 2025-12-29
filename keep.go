@@ -3,13 +3,17 @@ package wwwkeep
 import "fmt"
 
 type Vals []string
-type node map[string]Vals
+type node map[string]*List
 type Keep map[string]node
+
+type DirSize struct {
+	Len, Cap uint
+}
 
 type Dirs struct {
 	EntName string
 	EntType string
-	Counts  map[string]uint
+	Sizes   map[string]DirSize
 }
 
 func (it Keep) getNode(nodeName string) (node, error) {
@@ -33,7 +37,9 @@ func (it Keep) def(args *Args) (uint, error) {
 
 	node := make(node)
 	for _, k := range args.DefKeys {
-		node[k] = make(Vals, args.Count)
+		l := new(List)
+		l.Grow(args.Count)
+		node[k] = l
 	}
 
 	it[nn] = node
@@ -47,16 +53,18 @@ func (it Keep) add(args *Args) (uint, error) {
 		return 0, err
 	}
 
+	count := 0
 	for k, v := range args.AddItem {
 		if node[k] == nil {
 			return 0, fmt.Errorf(
 				"keep_add: no %s/%s vec in %p",
 				nn, k, it)
 		}
-		node[k] = append(node[k], v)
+		node[k].Append(v)
+		count++
 	}
 
-	return uint(len(args.AddItem)), nil
+	return uint(count), nil
 }
 
 func (it Keep) get(args *Args) (Vals, error) {
@@ -74,7 +82,7 @@ func (it Keep) get(args *Args) (Vals, error) {
 			nn, k, it)
 	}
 
-	return vs, nil
+	return vs.Slice(), nil
 }
 
 func (it Keep) pop(args *Args) (uint, error) {
@@ -92,12 +100,11 @@ func (it Keep) pop(args *Args) (uint, error) {
 			nn, k, it)
 	}
 
-	if args.Count > 0 {
-		vs = vs[args.Count:]
-		node[k] = vs
+	for range args.Count {
+		vs.Pop()
 	}
 
-	return uint(len(vs)), nil
+	return uint(vs.Len), nil
 }
 
 func (it Keep) len(args *Args) (uint, error) {
@@ -107,28 +114,29 @@ func (it Keep) len(args *Args) (uint, error) {
 func (it Keep) dir(args *Args) (Dirs, error) {
 	en := args.NodeName
 	et := ""
-	counts := make(map[string]uint)
+	sizes := make(map[string]DirSize, len(it))
 
 	if en == "*" {
 		for k, node := range it {
-			counts[k] = uint(len(node))
+			ln := uint(len(node))
+			sizes[k] = DirSize{ln, ln}
 		}
 
 		et = "nodes"
 	} else {
 		node := it[en]
 		if node == nil {
-			return Dirs{"", "", nil}, fmt.Errorf(
+			return Dirs{}, fmt.Errorf(
 				"keep_dir: no %s node in %p",
 				en, it)
 		}
 
 		for k, vs := range node {
-			counts[k] = uint(len(vs))
+			sizes[k] = DirSize{vs.Len, vs.Cap}
 		}
 
 		et = "vecs"
 	}
 
-	return Dirs{en, et, counts}, nil
+	return Dirs{en, et, sizes}, nil
 }
